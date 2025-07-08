@@ -192,8 +192,9 @@
             </div>
             <div class="form-group">
                 <label for="exercise">Övning:</label>
-                <input type="text" id="exercise" required list="exerciseSuggestions" placeholder="T.ex. Bänkpress, Löpning">
-                <datalist id="exerciseSuggestions"></datalist>
+                <select id="exercise" required>
+                    <option value="">Välj övning...</option>
+                    </select>
             </div>
 
             <div id="strength-fields">
@@ -253,29 +254,38 @@
         const API_LOG_WORKOUT_URL = '/api/log-workout';
         const API_GET_WORKOUTS_URL = '/api/get-workouts';
 
-        // Förifylld lista med vanliga CrossFit-övningar
-        const defaultCrossFitExercises = [
-            "Air Squat", "Back Squat", "Front Squat", "Overhead Squat",
-            "Shoulder Press", "Push Press", "Push Jerk", "Split Jerk",
-            "Deadlift", "Sumo Deadlift High Pull", "Medicine Ball Clean",
-            "Wall Ball Shot", "Kettlebell Swing", "Snatch", "Clean & Jerk",
-            "Thruster", "Burpee", "Box Jump", "Pull-up", "Chest-to-bar Pull-up",
-            "Toes-to-bar", "Handstand Push-up", "Double-unders", "Rowing",
-            "Running", "Cycling (BikeErg)", "SkiErg", "Muscle-up (Rings)", "Muscle-up (Bar)",
-            "Ring Dip", "Pistol Squat", "GHD Sit-up", "Handstand Walk",
-            "Power Clean", "Power Snatch", "Clean", "Jerk", "Strict Pull-up",
-            "Push-up", "Sit-up", "Lunge", "Assault Bike"
-        ].sort(); // Sortera alfabetiskt
+        // Kategoriserade CrossFit-övningar
+        const categorizedExercises = {
+            "Styrka: Skivstång": [
+                "Back Squat", "Front Squat", "Overhead Squat", "Deadlift",
+                "Shoulder Press", "Push Press", "Push Jerk", "Split Jerk",
+                "Snatch", "Clean & Jerk", "Power Clean", "Power Snatch",
+                "Clean", "Jerk", "Thruster", "Bench Press"
+            ],
+            "Styrka: Kroppsvikt/Gymnastik": [
+                "Air Squat", "Burpee", "Box Jump", "Pull-up", "Chest-to-bar Pull-up",
+                "Toes-to-bar", "Handstand Push-up", "Muscle-up (Rings)", "Muscle-up (Bar)",
+                "Ring Dip", "Pistol Squat", "GHD Sit-up", "Handstand Walk",
+                "Push-up", "Sit-up", "Lunge", "Rope Climb"
+            ],
+            "Kondition/Monostrukturellt": [
+                "Running", "Rowing", "Cycling (BikeErg)", "SkiErg", "Assault Bike",
+                "Double-unders", "Single-unders", "Wall Ball Shot", "Kettlebell Swing (American)", "Kettlebell Swing (Russian)"
+            ],
+            "Övrigt": [
+                "Medicine Ball Clean", "Dumbbell Snatch", "Dumbbell Clean & Jerk",
+                "Farmers Carry", "Sled Push", "Sled Pull"
+            ]
+        };
 
         let allWorkouts = []; // Lagrar de senaste 20 pass för listan och filtrering
         let allWorkoutsForLookup = []; // Lagrar ALLA pass för snabb uppslagning av tidigare resultat
 
         // DOM-element
-        const exerciseInput = document.getElementById('exercise');
+        const exerciseSelect = document.getElementById('exercise'); // Nu en select-tagg
         const strengthFields = document.getElementById('strength-fields');
         const cardioFields = document.getElementById('cardio-fields');
         const filterSelect = document.getElementById('filter-exercise');
-        const exerciseSuggestionsDatalist = document.getElementById('exerciseSuggestions');
         const workoutsListDiv = document.getElementById('workouts-list');
         const workoutForm = document.getElementById('workoutForm');
 
@@ -321,13 +331,12 @@
                     dateTimeString = workout.DateTime || 'Okänt Datum';
                 }
 
-                // Anpassa för dina exakta kolumnnamn i Google Sheet
                 const weightDisplay = workout.Weight ? `${workout.Weight} kg` : '';
                 const repsDisplay = workout.Reps ? `${workout.Reps} reps` : '';
                 const setsDisplay = workout.Sets ? `${workout.Sets} set` : '';
                 const intensityDisplay = workout.Intence ? `RPE: ${workout.Intence}` : '';
-                const distanceDisplay = workout['Distans (m)'] ? `${workout['Distans (m)']} m` : '';
-                const timeDisplay = workout['Tid (min)'] ? `${workout['Tid (min)']} min` : '';
+                const distanceDisplay = workout['Distans (m)'] ? `${workout['Distans (m)']} m` : ''; // <<-- VIKTIGT: Kontrollera detta namn
+                const timeDisplay = workout['Tid (min)'] ? `${workout['Tid (min)']} min` : '';     // <<-- VIKTIGT: Kontrollera detta namn
 
                 let metrics = [];
                 if (weightDisplay) metrics.push(weightDisplay);
@@ -372,7 +381,59 @@
             }
         }
 
-        // Funktion för att fylla filterdropdown och ladda pass (de 20 senaste)
+        // Funktion för att fylla select-boxen för övning och filter-dropdown
+        async function populateExerciseDropdowns() {
+            // Hämta alla övningar från Google Sheet
+            const sheetExercises = [...new Set(allWorkoutsForLookup.map(w => w.Exercise).filter(exercise => exercise && exercise.trim() !== ''))];
+            
+            // Samla alla unika övningar, från både förinställda och loggade
+            let allUniqueExercises = new Set();
+            for (const category in categorizedExercises) {
+                categorizedExercises[category].forEach(exercise => allUniqueExercises.add(exercise));
+            }
+            sheetExercises.forEach(exercise => allUniqueExercises.add(exercise));
+
+            const sortedAllUniqueExercises = Array.from(allUniqueExercises).sort((a, b) => a.localeCompare(b));
+
+            // Fyll "Övning"-selecten med kategorier och övningar
+            exerciseSelect.innerHTML = '<option value="">Välj övning...</option>';
+            for (const category in categorizedExercises) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category;
+                categorizedExercises[category].forEach(exercise => {
+                    const option = document.createElement('option');
+                    option.value = exercise;
+                    option.textContent = exercise;
+                    optgroup.appendChild(option);
+                });
+                exerciseSelect.appendChild(optgroup);
+            }
+            // Lägg till övningar från Google Sheet som inte finns i de fördefinierade kategorierna
+            const loggedButNotCategorized = sheetExercises.filter(ex => !Object.values(categorizedExercises).flat().includes(ex));
+            if (loggedButNotCategorized.length > 0) {
+                const optgroupOther = document.createElement('optgroup');
+                optgroupOther.label = "Tidigare loggade (övriga)";
+                loggedButNotCategorized.sort().forEach(exercise => {
+                    const option = document.createElement('option');
+                    option.value = exercise;
+                    option.textContent = exercise;
+                    optgroupOther.appendChild(option);
+                });
+                exerciseSelect.appendChild(optgroupOther);
+            }
+
+
+            // Fyll filter dropdown (alla unika övningar, ingen kategorisering här)
+            filterSelect.innerHTML = '<option value="">Alla övningar</option>';
+            sortedAllUniqueExercises.forEach(exercise => {
+                const option = document.createElement('option');
+                option.value = exercise;
+                option.textContent = exercise;
+                filterSelect.appendChild(option);
+            });
+        }
+
+        // Funktion för att ladda pass (de 20 senaste) och rendera dem
         async function loadAndRenderWorkouts() {
             workoutsListDiv.innerHTML = '<p>Laddar pass...</p>';
 
@@ -387,28 +448,6 @@
                 if (result.success) {
                     allWorkouts = result.workouts; 
                     renderWorkouts(allWorkouts); 
-
-                    // Kombinera default-övningar med övningar från Google Sheet
-                    const sheetExercises = allWorkoutsForLookup.map(w => w.Exercise).filter(exercise => exercise && exercise.trim() !== '');
-                    const combinedExercises = [...new Set([...defaultCrossFitExercises, ...sheetExercises])].sort((a, b) => a.localeCompare(b));
-                    
-                    // Fyll filter dropdown
-                    filterSelect.innerHTML = '<option value="">Alla övningar</option>';
-                    combinedExercises.forEach(exercise => {
-                        const option = document.createElement('option');
-                        option.value = exercise;
-                        option.textContent = exercise;
-                        filterSelect.appendChild(option);
-                    });
-
-                    // Fyll datalist för auto-komplettering i övningsfältet
-                    exerciseSuggestionsDatalist.innerHTML = '';
-                    combinedExercises.forEach(exercise => {
-                        const option = document.createElement('option');
-                        option.value = exercise;
-                        exerciseSuggestionsDatalist.appendChild(option);
-                    });
-
                 } else {
                     showPopup('Kunde inte hämta pass: ' + result.message, true);
                     workoutsListDiv.innerHTML = '<p>Kunde inte ladda pass.</p>';
@@ -422,10 +461,9 @@
 
         // Funktion för att växla formulärfält baserat på övning
         function toggleWorkoutFields() {
-            const exerciseName = exerciseInput.value.trim().toLowerCase();
-            const cardioKeywords = ['löpning', 'cykling', 'simning', 'rodd', 'kondition', 'cardio', 'erg']; // Lade till 'erg' för Erg-övningar
+            const exerciseName = exerciseSelect.value.trim().toLowerCase();
+            const cardioKeywords = ['löpning', 'cykling', 'simning', 'rodd', 'kondition', 'cardio', 'erg', 'double-unders', 'ski', 'run']; // Utökade nyckelord
 
-            // Kontrollera om övningsnamnet innehåller någon av konditionsnyckelorden
             if (cardioKeywords.some(keyword => exerciseName.includes(keyword))) {
                 strengthFields.classList.add('hidden-field');
                 cardioFields.classList.remove('hidden-field');
@@ -443,9 +481,9 @@
             }
         }
 
-        // Funktion för att visa notis om tidigare resultat (vid inmatning)
+        // Funktion för att visa notis om tidigare resultat (vid val i dropdown)
         function showPreviousWorkoutNotification() {
-            const currentExercise = exerciseInput.value.trim();
+            const currentExercise = exerciseSelect.value.trim();
             if (!currentExercise) return;
 
             const lastWorkout = allWorkoutsForLookup.find(w =>
@@ -511,9 +549,9 @@
 
 
         // Event listeners
-        exerciseInput.addEventListener('input', () => {
+        // Ändrad från input till change för select-element
+        exerciseSelect.addEventListener('change', () => {
             toggleWorkoutFields();
-            // Visa notis om tidigare resultat direkt när användaren börjar skriva in övning
             showPreviousWorkoutNotification();
         });
 
@@ -522,12 +560,10 @@
             let filtered = [];
 
             if (selectedExercise === "") {
-                filtered = allWorkouts; // Visa de 20 senaste totalt (från loadAndRenderWorkouts)
+                filtered = allWorkouts; 
             } else {
-                // Filtrera från den globala allWorkoutsForLookup arrayen (som innehåller alla pass)
-                // och ta de 20 senaste AV DEN ÖVNINGEN
                 filtered = allWorkoutsForLookup.filter(workout => workout.Exercise && workout.Exercise.trim().toLowerCase() === selectedExercise.toLowerCase())
-                                              .slice(0, 20); // Visa de 20 senaste för den specifika övningen
+                                              .slice(0, 20); 
             }
             renderWorkouts(filtered);
         });
@@ -536,7 +572,7 @@
             event.preventDefault();
 
             const DateTime = document.getElementById('date-time').value;
-            const Exercise = exerciseInput.value.trim();
+            const Exercise = exerciseSelect.value.trim(); // Hämta värde från select-element
             const Weight = document.getElementById('weight').value;
             const Reps = document.getElementById('reps').value;
             const Sets = document.getElementById('sets').value;
@@ -576,15 +612,15 @@
                     const now = new Date();
                     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
                     document.getElementById('date-time').value = now.toISOString().slice(0, 16);
-                    toggleWorkoutFields(); // Se till att fälten visas korrekt efter reset
                     
-                    // Ladda om all data FÖRST så den nya är med i jämförelsen
+                    // Se till att "Välj övning..." är valt efter reset
+                    exerciseSelect.value = ""; 
+                    toggleWorkoutFields(); 
+                    
                     await fetchAllWorkoutsForLookup(); 
-                    // Sedan visa jämförelsenotisen
-                    showComparisonNotification(dataToSend); // Skicka med det nylogggade passet
-                    
-                    // Till sist, ladda om de 20 senaste för listan och filtret
+                    showComparisonNotification(dataToSend); 
                     await loadAndRenderWorkouts();     
+                    populateExerciseDropdowns(); // Ladda om dropdowns för att inkludera ny övning om det var en helt ny
                 } else {
                     showPopup('Fel vid loggning av pass: ' + result.message, true);
                 }
@@ -601,7 +637,8 @@
             document.getElementById('date-time').value = now.toISOString().slice(0, 16);
             
             await fetchAllWorkoutsForLookup(); // Hämta all data först
-            await loadAndRenderWorkouts();     // Ladda och rendera de 20 senaste (och fyll filter/datalist)
+            await populateExerciseDropdowns(); // Fyll dropdowns (övning & filter) baserat på default & loggad data
+            await loadAndRenderWorkouts();     // Ladda och rendera de 20 senaste
             toggleWorkoutFields(); // Ställ in initial synlighet för fälten
         });
 
