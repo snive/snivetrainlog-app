@@ -3,314 +3,374 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Min Träningslogg</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Snive Train Log</title>
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Ljusgrå bakgrund */
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column; /* Ändra till kolumn för att lägga till lista under */
+            justify-content: flex-start; /* Justera till toppen */
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            margin-bottom: 20px; /* Mellanslag under formuläret */
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        input[type="datetime-local"],
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select { /* Lägg till select */
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .popup-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50; /* Green for success */
+            color: white;
+            padding: 15px 25px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            font-weight: bold;
+        }
+        .popup-notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .popup-notification.error {
+            background-color: #f44336; /* Red for error */
+        }
+
+        /* Styling för träningslista */
+        .workout-list-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            margin-top: 20px;
+        }
+        .workout-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .workout-item:last-child {
+            border-bottom: none;
+        }
+        .workout-item div {
+            flex: 1;
+        }
+        .workout-item span {
+            font-weight: bold;
+            color: #333;
+        }
+        .workout-item small {
+            color: #777;
+            font-size: 0.8em;
+            display: block;
+        }
+        .filter-group {
+            margin-bottom: 15px;
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4">
-
-    <div class="bg-white p-8 rounded-lg shadow-xl max-w-4xl w-full mb-8">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6 rounded-lg p-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white shadow-md">
-            Logga Träningspass
-        </h1>
-
-        <form id="logWorkoutForm" class="space-y-4">
-            <div>
-                <label for="workoutDateTime" class="block text-sm font-medium text-gray-700">Datum & Tid:</label>
-                <input type="datetime-local" id="workoutDateTime" name="DateTime" required
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+<body>
+    <div class="container">
+        <h1>Logga träningspass</h1>
+        <form id="workoutForm">
+            <div class="form-group">
+                <label for="date-time">Datum & Tid:</label>
+                <input type="datetime-local" id="date-time" required>
             </div>
-            <div>
-                <label for="workoutExercise" class="block text-sm font-medium text-gray-700">Övning:</label>
-                <select id="workoutExercise" name="Exercise" required
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
-                    <option value="">Välj övning...</option>
-                    <optgroup label="Gymnastik/Kroppsvikt">
-                        <option value="Air Squat">Air Squat</option>
-                        <option value="Push-up">Push-up</option>
-                        <option value="Sit-up">Sit-up</option>
-                        <option value="Burpee">Burpee</option>
-                        <option value="Pull-up">Pull-up</option>
-                        <option value="Toes-to-Bar">Toes-to-Bar</option>
-                        <option value="Handstand Push-up">Handstand Push-up</option>
-                        <option value="Ring Dip">Ring Dip</option>
-                        <option value="Muscle-up">Muscle-up</option>
-                        <option value="Pistol Squat">Pistol Squat</option>
-                        <option value="Rope Climb">Rope Climb</option>
-                    </optgroup>
-                    <optgroup label="Viktlyftning">
-                        <option value="Deadlift">Deadlift</option>
-                        <option value="Back Squat">Back Squat</option>
-                        <option value="Front Squat">Front Squat</option>
-                        <option value="Overhead Squat">Overhead Squat</option>
-                        <option value="Shoulder Press">Shoulder Press</option>
-                        <option value="Push Press">Push Press</option>
-                        <option value="Push Jerk">Push Jerk</option>
-                        <option value="Split Jerk">Split Jerk</option>
-                        <option value="Snatch">Snatch</option>
-                        <option value="Clean">Clean</option>
-                        <option value="Clean & Jerk">Clean & Jerk</option>
-                        <option value="Thruster">Thruster</option>
-                        <option value="Wall Ball Shot">Wall Ball Shot</option>
-                        <option value="Kettlebell Swing">Kettlebell Swing</option>
-                        <option value="Box Jump">Box Jump</option>
-                        <option value="Goblet Squat">Goblet Squat</option>
-                        <option value="Sumo Deadlift High Pull">Sumo Deadlift High Pull</option>
-                    </optgroup>
-                    <optgroup label="Kondition">
-                        <option value="Running">Running (Löpning)</option>
-                        <option value="Rowing">Rowing (Rodd)</option>
-                        <option value="Assault Bike">Assault Bike / Echo Bike</option>
-                        <option value="Ski Erg">Ski Erg</option>
-                        <option value="Double Unders">Double Unders</option>
-                        <option value="Single Unders">Single Unders</option>
-                    </optgroup>
-                </select>
+            <div class="form-group">
+                <label for="exercise">Övning:</label>
+                <input type="text" id="exercise" required list="exerciseSuggestions">
+                <datalist id="exerciseSuggestions"></datalist>
             </div>
-            <div>
-                <label for="workoutWeight" class="block text-sm font-medium text-gray-700">Vikt (kg):</label>
-                <input type="number" id="workoutWeight" name="Weight"
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+            <div class="form-group">
+                <label for="weight">Vikt (kg):</label>
+                <input type="number" id="weight" step="0.5">
             </div>
-            <div>
-                <label for="workoutReps" class="block text-sm font-medium text-gray-700">Reps:</label>
-                <input type="number" id="workoutReps" name="Reps"
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+            <div class="form-group">
+                <label for="reps">Reps:</label>
+                <input type="number" id="reps">
             </div>
-            <div>
-                <label for="workoutSets" class="block text-sm font-medium text-gray-700">Sets:</label>
-                <input type="number" id="workoutSets" name="Sets"
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+            <div class="form-group">
+                <label for="sets">Sets:</label>
+                <input type="number" id="sets">
             </div>
-            <div>
-                <label for="workoutIntence" class="block text-sm font-medium text-gray-700">Intensitet (1-5):</label>
-                <input type="number" id="workoutIntence" name="Intence" min="1" max="5"
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+            <div class="form-group">
+                <label for="intence">Intensitet (RPE):</label>
+                <input type="number" id="intence" step="0.5" min="1" max="10">
             </div>
-            <div>
-                <label for="workoutComment" class="block text-sm font-medium text-gray-700">Kommentarer:</label>
-                <textarea id="workoutComment" name="Comment" rows="3" placeholder="T.ex. Kändes bra, fokus på teknik"
-                          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea>
+            <div class="form-group">
+                <label for="comment">Kommentar:</label>
+                <textarea id="comment"></textarea>
             </div>
-            <button type="submit"
-                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition duration-150 ease-in-out">
-                Logga Pass
-            </button>
-            <div id="formMessage" class="mt-4 text-center text-sm font-medium"></div>
+            <button type="submit" id="logButton">Logga Pass</button>
         </form>
     </div>
 
-    <div class="bg-white p-8 rounded-lg shadow-xl max-w-4xl w-full">
-        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6 border-b pb-4">
-            Dina Loggade Pass
-        </h2>
-
-        <div id="loadingWorkouts" class="text-center text-gray-600 text-lg my-8">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-            <p class="mt-4">Laddar dina pass...</p>
+    <div class="workout-list-container">
+        <h2>Senaste passen</h2>
+        <div class="filter-group">
+            <label for="filter-exercise">Filtrera övning:</label>
+            <select id="filter-exercise">
+                <option value="">Alla övningar</option>
+                </select>
         </div>
-
-        <div id="workoutsTableContainer" class="hidden overflow-x-auto">
-            <table class="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <thead class="bg-orange-500 text-white">
-                    <tr id="workoutTableHeaders">
-                        </tr>
-                </thead>
-                <tbody id="workoutTableBody" class="divide-y divide-gray-200">
-                    </tbody>
-            </table>
-        </div>
-
-        <div id="noWorkoutsFound" class="hidden text-center text-gray-700 p-4">
-            <p>Inga träningspass hittades.</p>
-        </div>
-
-        <div id="workoutsError" class="hidden text-center text-red-600 text-lg my-8">
-            <p>Ett fel uppstod vid laddning av pass.</p>
-            <p id="workoutsErrorMessage" class="text-sm text-red-400 mt-2"></p>
+        <div id="workouts-list">
+            <p>Laddar pass...</p>
         </div>
     </div>
 
+    <div id="popupNotification" class="popup-notification"></div>
+
     <script>
-        // *** VIKTIGT: ERSÄTT DENNA URL MED DIN EGNA GOOGLE APPS SCRIPT WEB APP URL ***
-        // Exempel: 'https://script.google.com/macros/s/AKfycbzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz/exec'
-		
-         //const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx43PL-G4l9GlFwRu1fVwUqmbXPOLhUTkjcxAJ5BBfM-dNoDuTb6PPL3esB88p4ERwu/exec'; 
-		 //const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbweBLpAJvUuLitl6j3XjKdC3H7noJWfUNlypNxx5k9E5kJ6azf24eJxyhc1T1IaK6RL/exec'; 
-		const APPS_SCRIPT_WEB_APP_URL = '/api/log-workout';
+        const API_LOG_WORKOUT_URL = '/api/log-workout';
+        const API_GET_WORKOUTS_URL = '/api/get-workouts';
 
-        const form = document.getElementById('logWorkoutForm');
-        const formMessage = document.getElementById('formMessage');
-        const workoutDateTimeInput = document.getElementById('workoutDateTime'); 
+        let allWorkouts = []; // Lagrar alla hämtade pass för filtrering
 
-        const loadingWorkoutsDiv = document.getElementById('loadingWorkouts');
-        const workoutsTableContainer = document.getElementById('workoutsTableContainer');
-        const workoutTableHeaders = document.getElementById('workoutTableHeaders');
-        const workoutTableBody = document.getElementById('workoutTableBody');
-        const noWorkoutsFoundDiv = document.getElementById('noWorkoutsFound');
-        const workoutsErrorDiv = document.getElementById('workoutsError');
-        const workoutsErrorMessageDiv = document.getElementById('workoutsErrorMessage');
+        // Funktion för att visa popup-notis
+        function showPopup(message, isError = false) {
+            const popup = document.getElementById('popupNotification');
+            popup.textContent = message;
+            popup.classList.remove('error');
+            if (isError) {
+                popup.classList.add('error');
+            }
+            popup.classList.add('show');
 
-        // Sätter dagens datum och aktuell tid som standard i datum/tid-fältet
-        function setInitialDateTime() {
-            const now = new Date();
-            // Justera för tidszon för att få korrekt lokal tid i input-fältet
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); 
-            workoutDateTimeInput.value = now.toISOString().slice(0, 16); // Format för datetime-local (YYYY-MM-DDTHH:MM)
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 5000); // Notisen försvinner efter 5 sekunder
         }
-        setInitialDateTime(); // Kör vid sidladdning
 
-        // --- Funktion för att logga nytt träningspass ---
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Förhindra standardformulärs-submit
+        // Funktion för att rendera träningspassen
+        function renderWorkouts(workoutsToRender) {
+            const workoutsListDiv = document.getElementById('workouts-list');
+            workoutsListDiv.innerHTML = ''; // Rensa befintlig lista
 
-            formMessage.textContent = 'Sparar pass...';
-            formMessage.className = 'mt-4 text-center text-sm font-medium text-gray-600';
-
-            const formData = new FormData(form);
-            const workoutData = {};
-            for (const [key, value] of formData.entries()) {
-                // Nyckeln (key) matchar redan kolumnnamnen i Google Sheet
-                workoutData[key] = value;
+            if (workoutsToRender.length === 0) {
+                workoutsListDiv.innerHTML = '<p>Inga pass att visa.</p>';
+                return;
             }
 
-            // Särskild hantering för DateTime: konvertera till ISO-format för Google Sheets
-            if (workoutData['DateTime']) {
-                workoutData['DateTime'] = new Date(workoutData['DateTime']).toISOString();
-            }
-            
-			 // NY RAD ATT LÄGGA TILL FÖR FELSÖKNING:
-			console.log("Sending workoutData:", workoutData); 
-			
-            try {
-                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'cors', // Viktigt för cross-origin requests
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(workoutData),
+            workoutsToRender.forEach(workout => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('workout-item');
+
+                const dateTime = new Date(workout.DateTime).toLocaleString('sv-SE', {
+                    year: 'numeric', month: 'numeric', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
                 });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Nätverksfel: ${response.status} - ${errorText}`);
-                }
+                itemDiv.innerHTML = `
+                    <div>
+                        <span>${workout.Exercise}</span><small>${dateTime}</small>
+                    </div>
+                    <div>
+                        <small>Vikt: ${workout.Weight || '-'}</small>
+                        <small>Reps: ${workout.Reps || '-'}</small>
+                        <small>Sets: ${workout.Sets || '-'}</small>
+                    </div>
+                `;
+                workoutsListDiv.appendChild(itemDiv);
+            });
+        }
 
+        // Funktion för att fylla filterdropdown och ladda pass
+        async function loadAndRenderWorkouts() {
+            const workoutsListDiv = document.getElementById('workouts-list');
+            workoutsListDiv.innerHTML = '<p>Laddar pass...</p>'; // Visa laddningsmeddelande
+
+            try {
+                const response = await fetch(API_GET_WORKOUTS_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const result = await response.json();
 
                 if (result.success) {
-                    formMessage.textContent = result.message;
-                    formMessage.className = 'mt-4 text-center text-sm font-medium text-green-600';
-                    form.reset(); // Rensa formuläret
-                    setInitialDateTime(); // Sätt dagens datum/tid igen
-                    fetchWorkouts(); // Ladda om passlistan så det nya passet visas
+                    allWorkouts = result.workouts; // Spara alla hämtade pass globalt
+                    renderWorkouts(allWorkouts); // Rendera initialt de senaste 20
+
+                    // Fyll i filterdropdown med unika övningar
+                    const filterSelect = document.getElementById('filter-exercise');
+                    const uniqueExercises = [...new Set(allWorkouts.map(w => w.Exercise).filter(Boolean))].sort();
+                    filterSelect.innerHTML = '<option value="">Alla övningar</option>'; // Återställ
+                    uniqueExercises.forEach(exercise => {
+                        const option = document.createElement('option');
+                        option.value = exercise;
+                        option.textContent = exercise;
+                        filterSelect.appendChild(option);
+                    });
+
+                    // Kontrollera om det finns en övning i input-fältet och förifyll filter om möjligt
+                    const currentExerciseInput = document.getElementById('exercise').value.trim();
+                    if (currentExerciseInput) {
+                        const existingOption = [...filterSelect.options].find(option => option.value.toLowerCase() === currentExerciseInput.toLowerCase());
+                        if (existingOption) {
+                            filterSelect.value = existingOption.value;
+                            // Trigger filtrering om det redan finns en övning i input-fältet
+                            filterSelect.dispatchEvent(new Event('change'));
+                        }
+                    }
+
                 } else {
-                    formMessage.textContent = `Fel: ${result.message}`;
-                    formMessage.className = 'mt-4 text-center text-sm font-medium text-red-600';
+                    showPopup('Kunde inte hämta pass: ' + result.message, true);
+                    workoutsListDiv.innerHTML = '<p>Kunde inte ladda pass.</p>';
                 }
             } catch (error) {
-                console.error('Fel vid loggning av pass:', error);
-                formMessage.textContent = `Ett oväntat fel uppstod: ${error.message}`;
-                formMessage.className = 'mt-4 text-center text-sm font-medium text-red-600';
-            }
-        });
-
-        // --- Funktion för att hämta och visa befintliga träningspass ---
-        async function fetchWorkouts() {
-            loadingWorkoutsDiv.classList.remove('hidden');
-            workoutsTableContainer.classList.add('hidden');
-            noWorkoutsFoundDiv.classList.add('hidden');
-            workoutsErrorDiv.classList.add('hidden');
-
-            try {
-                const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-                    method: 'GET',
-                    mode: 'cors',
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Nätverksfel: ${response.status} - ${errorText}`);
-                }
-
-                const result = await response.json(); // Resultatet är { headers: [], data: [] }
-
-                // Clear existing content
-                workoutTableHeaders.innerHTML = '';
-                workoutTableBody.innerHTML = '';
-
-                if (result.data && result.data.length > 0) {
-                    // Create headers
-                    result.headers.forEach(headerText => {
-                        const th = document.createElement('th');
-                        th.textContent = headerText;
-                        th.className = 'py-3 px-6 text-left text-xs font-medium uppercase tracking-wider';
-                        workoutTableHeaders.appendChild(th);
-                    });
-
-                    // Create rows
-                    // Sortera passen så det senaste visas först (efter DateTime)
-                    const sortedWorkouts = result.data.sort((a, b) => {
-                        return new Date(b['DateTime']) - new Date(a['DateTime']);
-                    });
-
-                    sortedWorkouts.forEach(workout => {
-                        const tr = document.createElement('tr');
-                        tr.className = 'hover:bg-gray-50 transition duration-150 ease-in-out';
-                        result.headers.forEach(header => { // Gå igenom i rätt rubrikordning
-                            const td = document.createElement('td');
-                            let displayValue = workout[header];
-
-                            // Formatera DateTime för visning om det är ett datum
-                            if (header === 'DateTime' && displayValue) {
-                                try {
-                                    const date = new Date(displayValue);
-                                    // Kontrollera att det är ett giltigt datum
-                                    if (!isNaN(date.getTime())) {
-                                        // Använd toLocaleString för svenskt format med datum och tid
-                                        displayValue = date.toLocaleString('sv-SE', {
-                                            year: 'numeric',
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        });
-                                    }
-                                } catch (e) {
-                                    // Behåll originalvärdet om det inte kan parsas som datum
-                                }
-                            }
-
-                            td.textContent = displayValue || ''; // Visa tom sträng om data saknas
-                            td.className = 'py-4 px-6 whitespace-nowrap text-sm text-gray-700';
-                            tr.appendChild(td);
-                        });
-                        workoutTableBody.appendChild(tr);
-                    });
-
-                    workoutsTableContainer.classList.remove('hidden');
-                } else {
-                    noWorkoutsFoundDiv.classList.remove('hidden');
-                }
-
-            } catch (error) {
-                console.error('Fel vid hämtning av pass:', error);
-                workoutsErrorMessageDiv.textContent = error.message;
-                workoutsErrorDiv.classList.remove('hidden');
-            } finally {
-                loadingWorkoutsDiv.classList.add('hidden');
+                console.error('Nätverksfel vid hämtning av pass:', error);
+                showPopup('Nätverksfel vid hämtning av pass: ' + error.message, true);
+                workoutsListDiv.innerHTML = '<p>Nätverksfel vid laddning.</p>';
             }
         }
 
-        // Ladda pass när sidan laddas
-        window.addEventListener('load', fetchWorkouts);
+        // Event listener för att filtrera pass baserat på dropdown-val
+        document.getElementById('filter-exercise').addEventListener('change', function() {
+            const selectedExercise = this.value;
+            let filtered = [];
+
+            if (selectedExercise === "") {
+                filtered = allWorkouts; // Visa alla om inget filter valt
+            } else {
+                // Filtrera och ta de senaste 20 av den valda övningen
+                // OBS: allWorkouts är redan de 20 senaste totalt, så vi filtrerar bland dem.
+                // Om du vill se de 20 senaste av *just den övningen* (oavsett andra),
+                // så måste get-workouts funktionen hämta fler än 20 totalt.
+                filtered = allWorkouts.filter(workout => workout.Exercise === selectedExercise);
+                // Om get-workouts redan skickar de senaste 20 totalt,
+                // kan en specifik övning ha färre än 20.
+            }
+            renderWorkouts(filtered);
+        });
+
+
+        // Hantera formulärinskickning
+        document.getElementById('workoutForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const DateTime = document.getElementById('date-time').value;
+            const Exercise = document.getElementById('exercise').value.trim();
+            const Weight = document.getElementById('weight').value;
+            const Reps = document.getElementById('reps').value;
+            const Sets = document.getElementById('sets').value;
+            const Intence = document.getElementById('intence').value;
+            const Comment = document.getElementById('comment').value;
+
+            if (!DateTime || !Exercise) {
+                showPopup('Datum & Tid och Övning är obligatoriska fält.', true);
+                return;
+            }
+
+            const dataToSend = { DateTime, Exercise, Weight, Reps, Sets, Intence, Comment };
+
+            try {
+                const response = await fetch(API_LOG_WORKOUT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataToSend)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showPopup('Pass loggat: ' + result.message);
+                    document.getElementById('workoutForm').reset();
+                    document.getElementById('date-time').value = new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000).toISOString().slice(0, 16); // Återställ tid
+                    loadAndRenderWorkouts(); // Ladda om passlistan efter nytt inlägg
+                } else {
+                    showPopup('Fel vid loggning av pass: ' + result.message, true);
+                }
+            } catch (error) {
+                console.error('Nätverksfel:', error);
+                showPopup('Nätverksfel: ' + error.message, true);
+            }
+        });
+
+        // Autofyll övningsfältet med tidigare använda övningar (från hämtad data)
+        document.getElementById('exercise').addEventListener('input', function() {
+            const val = this.value;
+            const datalist = document.getElementById('exerciseSuggestions');
+            datalist.innerHTML = '';
+            // Bygg datalist från allWorkouts unika övningar
+            const uniqueExercises = [...new Set(allWorkouts.map(w => w.Exercise).filter(Boolean))].sort();
+            uniqueExercises.forEach(exercise => {
+                const option = document.createElement('option');
+                option.value = exercise;
+                datalist.appendChild(option);
+            });
+        });
+
+
+        // Initial laddning när sidan laddats
+        window.addEventListener('load', () => {
+            const now = new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            document.getElementById('date-time').value = now;
+            loadAndRenderWorkouts(); // Ladda pass vid sidladdning
+        });
+
     </script>
 </body>
 </html>

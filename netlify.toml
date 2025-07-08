@@ -1,5 +1,5 @@
 [build]
-  publish = "." # Dubbelkolla att detta matchar din Netlify "Publish directory"
+  publish = "."
   functions = "netlify/functions"
 
 [[redirects]]
@@ -7,7 +7,8 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
+# Du kan behålla [[headers]] sektionen om du hade den för att få det att fungera
+# [[headers]]
+#   for = "/*"
+#   [headers.values]
+#     X-Frame-Options = "DENY"
