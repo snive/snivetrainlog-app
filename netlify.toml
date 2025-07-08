@@ -1,0 +1,13 @@
+[build]
+  publish = "." # Dubbelkolla att detta matchar din Netlify "Publish directory"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
