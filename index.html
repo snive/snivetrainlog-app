@@ -253,6 +253,20 @@
         const API_LOG_WORKOUT_URL = '/api/log-workout';
         const API_GET_WORKOUTS_URL = '/api/get-workouts';
 
+        // Förifylld lista med vanliga CrossFit-övningar
+        const defaultCrossFitExercises = [
+            "Air Squat", "Back Squat", "Front Squat", "Overhead Squat",
+            "Shoulder Press", "Push Press", "Push Jerk", "Split Jerk",
+            "Deadlift", "Sumo Deadlift High Pull", "Medicine Ball Clean",
+            "Wall Ball Shot", "Kettlebell Swing", "Snatch", "Clean & Jerk",
+            "Thruster", "Burpee", "Box Jump", "Pull-up", "Chest-to-bar Pull-up",
+            "Toes-to-bar", "Handstand Push-up", "Double-unders", "Rowing",
+            "Running", "Cycling (BikeErg)", "SkiErg", "Muscle-up (Rings)", "Muscle-up (Bar)",
+            "Ring Dip", "Pistol Squat", "GHD Sit-up", "Handstand Walk",
+            "Power Clean", "Power Snatch", "Clean", "Jerk", "Strict Pull-up",
+            "Push-up", "Sit-up", "Lunge", "Assault Bike"
+        ].sort(); // Sortera alfabetiskt
+
         let allWorkouts = []; // Lagrar de senaste 20 pass för listan och filtrering
         let allWorkoutsForLookup = []; // Lagrar ALLA pass för snabb uppslagning av tidigare resultat
 
@@ -266,7 +280,6 @@
         const workoutForm = document.getElementById('workoutForm');
 
         // Funktion för att visa popup-notis
-        // isComparison är en ny flagga för den nya notistypen
         function showPopup(message, isError = false, isInfo = false, isComparison = false) {
             const popup = document.getElementById('popupNotification');
             popup.textContent = message;
@@ -313,8 +326,8 @@
                 const repsDisplay = workout.Reps ? `${workout.Reps} reps` : '';
                 const setsDisplay = workout.Sets ? `${workout.Sets} set` : '';
                 const intensityDisplay = workout.Intence ? `RPE: ${workout.Intence}` : '';
-                const distanceDisplay = workout['Distans (m)'] ? `${workout['Distans (m)']} m` : ''; // <<-- VIKTIGT: Kontrollera detta namn
-                const timeDisplay = workout['Tid (min)'] ? `${workout['Tid (min)']} min` : '';     // <<-- VIKTIGT: Kontrollera detta namn
+                const distanceDisplay = workout['Distans (m)'] ? `${workout['Distans (m)']} m` : '';
+                const timeDisplay = workout['Tid (min)'] ? `${workout['Tid (min)']} min` : '';
 
                 let metrics = [];
                 if (weightDisplay) metrics.push(weightDisplay);
@@ -343,7 +356,6 @@
         // Funktion för att hämta all data för uppslagning av tidigare resultat
         async function fetchAllWorkoutsForLookup() {
             try {
-                // Notera: get-workouts.js måste skicka tillbaka ALL data om 'limit=all'
                 const response = await fetch(`${API_GET_WORKOUTS_URL}?limit=all`);
                 if (!response.ok) {
                     const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
@@ -351,7 +363,6 @@
                 }
                 const result = await response.json();
                 if (result.success) {
-                    // Sortera den fullständiga listan (nyaste först)
                     allWorkoutsForLookup = result.workouts.sort((a, b) => new Date(b.DateTime) - new Date(a.DateTime));
                 } else {
                     console.error('Kunde inte hämta all passdata för uppslagning:', result.message);
@@ -366,7 +377,6 @@
             workoutsListDiv.innerHTML = '<p>Laddar pass...</p>';
 
             try {
-                // Anropar för de 20 senaste (standard)
                 const response = await fetch(API_GET_WORKOUTS_URL); 
                 if (!response.ok) {
                     const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
@@ -375,22 +385,25 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    allWorkouts = result.workouts; // Spara de 20 senaste globalt
-                    renderWorkouts(allWorkouts); // Rendera initialt de 20 senaste
+                    allWorkouts = result.workouts; 
+                    renderWorkouts(allWorkouts); 
 
-                    // Fyll i filterdropdown och datalist med unika övningar från ALL data
-                    const uniqueExercises = [...new Set(allWorkoutsForLookup.map(w => w.Exercise).filter(exercise => exercise && exercise.trim() !== ''))].sort((a, b) => a.localeCompare(b));
-
+                    // Kombinera default-övningar med övningar från Google Sheet
+                    const sheetExercises = allWorkoutsForLookup.map(w => w.Exercise).filter(exercise => exercise && exercise.trim() !== '');
+                    const combinedExercises = [...new Set([...defaultCrossFitExercises, ...sheetExercises])].sort((a, b) => a.localeCompare(b));
+                    
+                    // Fyll filter dropdown
                     filterSelect.innerHTML = '<option value="">Alla övningar</option>';
-                    uniqueExercises.forEach(exercise => {
+                    combinedExercises.forEach(exercise => {
                         const option = document.createElement('option');
                         option.value = exercise;
                         option.textContent = exercise;
                         filterSelect.appendChild(option);
                     });
 
+                    // Fyll datalist för auto-komplettering i övningsfältet
                     exerciseSuggestionsDatalist.innerHTML = '';
-                    uniqueExercises.forEach(exercise => {
+                    combinedExercises.forEach(exercise => {
                         const option = document.createElement('option');
                         option.value = exercise;
                         exerciseSuggestionsDatalist.appendChild(option);
@@ -410,8 +423,9 @@
         // Funktion för att växla formulärfält baserat på övning
         function toggleWorkoutFields() {
             const exerciseName = exerciseInput.value.trim().toLowerCase();
-            const cardioKeywords = ['löpning', 'cykling', 'simning', 'rodd', 'kondition', 'cardio'];
+            const cardioKeywords = ['löpning', 'cykling', 'simning', 'rodd', 'kondition', 'cardio', 'erg']; // Lade till 'erg' för Erg-övningar
 
+            // Kontrollera om övningsnamnet innehåller någon av konditionsnyckelorden
             if (cardioKeywords.some(keyword => exerciseName.includes(keyword))) {
                 strengthFields.classList.add('hidden-field');
                 cardioFields.classList.remove('hidden-field');
@@ -461,13 +475,15 @@
             // Hitta det NÄST SENASTE passet för samma övning
             const previousWorkouts = allWorkoutsForLookup.filter(w =>
                 w.Exercise && w.Exercise.trim().toLowerCase() === currentExercise.toLowerCase() &&
-                w.DateTime !== newWorkout.DateTime // Exkludera det nyligen loggade passet
+                w.DateTime !== newWorkout.DateTime // Exkludera det nyligen loggade passet baserat på exakt tid
             ).sort((a, b) => new Date(b.DateTime) - new Date(a.DateTime)); // Sortera nyast först
 
             const lastLoggedWorkout = previousWorkouts[0]; // Det är nu det förra passet
             
             if (lastLoggedWorkout) {
                 let comparisonMessage = `Jämförelse för "${currentExercise}":\n\n`;
+                
+                // Formatera nuvarande pass
                 comparisonMessage += `**Nu:** `;
                 let newDetails = [];
                 if (newWorkout.Weight) newDetails.push(`${newWorkout.Weight} kg`);
@@ -478,14 +494,15 @@
                 if (newWorkout.Time) newDetails.push(`${newWorkout.Time} min`);
                 comparisonMessage += newDetails.join(', ') + '\n';
 
+                // Formatera förra passet
                 comparisonMessage += `**Förra (${new Date(lastLoggedWorkout.DateTime).toLocaleDateString('sv-SE')}):** `;
                 let oldDetails = [];
                 if (lastLoggedWorkout.Weight) oldDetails.push(`${lastLoggedWorkout.Weight} kg`);
                 if (lastLoggedWorkout.Reps) oldDetails.push(`${lastLoggedWorkout.Reps} reps`);
                 if (lastLoggedWorkout.Sets) oldDetails.push(`${lastLoggedWorkout.Sets} set`);
                 if (lastLoggedWorkout.Intence) oldDetails.push(`RPE ${lastLoggedWorkout.Intence}`);
-                if (lastLoggedWorkout['Distans (m)']) oldDetails.push(`${lastLoggedWorkout['Distans (m)']} m`); // Använd korrekta nyckeln
-                if (lastLoggedWorkout['Tid (min)']) oldDetails.push(`${lastLoggedWorkout['Tid (min)']} min`); // Använd korrekta nyckeln
+                if (lastLoggedWorkout['Distans (m)']) oldDetails.push(`${lastLoggedWorkout['Distans (m)']} m`); 
+                if (lastLoggedWorkout['Tid (min)']) oldDetails.push(`${lastLoggedWorkout['Tid (min)']} min`); 
                 comparisonMessage += oldDetails.join(', ');
 
                 showPopup(comparisonMessage, false, false, true); // Visa som jämförelse-notis (cyan)
@@ -496,6 +513,7 @@
         // Event listeners
         exerciseInput.addEventListener('input', () => {
             toggleWorkoutFields();
+            // Visa notis om tidigare resultat direkt när användaren börjar skriva in övning
             showPreviousWorkoutNotification();
         });
 
