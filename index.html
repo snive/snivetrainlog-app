@@ -7,31 +7,31 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #e0f2f7; /* Lättare blå bakgrund */
+            background-color: #2c2c2c; /* Mörkgrå bakgrund */
             display: flex;
-            flex-direction: column; /* Ändra till kolumn för att lägga till lista under */
-            justify-content: flex-start; /* Justera till toppen */
+            flex-direction: column;
+            justify-content: flex-start;
             align-items: center;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
-            color: #333;
+            color: #e0e0e0; /* Ljus text */
         }
         .container, .workout-list-container {
-            background-color: #ffffff;
+            background-color: #3a3a3a; /* Något ljusare grå för boxar */
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             width: 100%;
             max-width: 500px;
             box-sizing: border-box;
             margin-bottom: 20px;
-            border: 1px solid #c0e0eb; /* Lättare kantlinje */
+            border: 1px solid #555; /* Mörkare kantlinje */
         }
         h1, h2 {
             text-align: center;
-            color: #2c3e50; /* Mörkare titel */
+            color: #ffffff; /* Vit titel */
             margin-bottom: 25px;
             font-size: 2em;
             font-weight: 600;
@@ -42,7 +42,7 @@
         label {
             display: block;
             margin-bottom: 8px;
-            color: #4a6c8e; /* Mörkare etiketter */
+            color: #c0c0c0; /* Ljusare grå etiketter */
             font-weight: bold;
             font-size: 0.95em;
         }
@@ -53,16 +53,17 @@
         select {
             width: 100%;
             padding: 12px 15px;
-            border: 1px solid #a0d3e8; /* Lätt blå kantlinje */
+            border: 1px solid #666; /* Grå kantlinje */
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 1em;
-            color: #555;
+            color: #e0e0e0; /* Ljus text i fält */
+            background-color: #4a4a4a; /* Mörkare bakgrund i fält */
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
         input:focus, textarea:focus, select:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 8px rgba(0, 123, 255, 0.2);
+            border-color: #00aaff; /* Blå fokusfärg */
+            box-shadow: 0 0 8px rgba(0, 170, 255, 0.4);
             outline: none;
         }
         textarea {
@@ -106,6 +107,7 @@
             font-weight: bold;
             max-width: 90%; /* För att inte bli för bred på mobil */
             box-sizing: border-box;
+            word-wrap: break-word; /* Bryt långa ord */
         }
         .popup-notification.show {
             opacity: 1;
@@ -118,53 +120,60 @@
             background-color: #ffc107; /* Gul för info */
             color: #333; /* Mörk text på gul bakgrund */
         }
+        .popup-notification.comparison { /* Ny klass för jämförelse-notis */
+            background-color: #17a2b8; /* Cyan för jämförelse */
+            color: white;
+        }
 
         /* Styling för träningslista */
         .workout-list-container {
             margin-top: 20px;
         }
         .workout-item {
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #444; /* Mörkare grå avdelare */
             padding: 12px 0;
             display: flex;
-            flex-wrap: wrap; /* Tillåter radbrytning på mindre skärmar */
+            flex-wrap: wrap;
             justify-content: space-between;
-            align-items: flex-start; /* Justerar uppåt om innehållet är olika högt */
+            align-items: flex-start;
         }
         .workout-item:last-child {
             border-bottom: none;
         }
-        .workout-item > div { /* Specifik för direkt barn-divar */
+        .workout-item > div {
             flex: 1;
-            min-width: 45%; /* Ser till att de tar plats */
-            margin-bottom: 5px; /* Mellanslag mellan elementen vid radbrytning */
+            min-width: 45%;
+            margin-bottom: 5px;
         }
         .workout-item > div:first-child {
-            flex: 2; /* Ger övning/datum mer plats */
-            min-width: 100%; /* Alltid 100% bredd på mobil */
+            flex: 2;
+            min-width: 100%;
             margin-bottom: 10px;
         }
-        @media (min-width: 480px) { /* Över 480px bredd, layout på två kolumner */
+        @media (min-width: 480px) {
             .workout-item > div:first-child {
                 min-width: 50%;
             }
             .workout-item > div {
-                min-width: 25%; /* Anpassa för att passa 2-kolumns layout */
+                min-width: 25%;
             }
         }
         .workout-item span {
             font-weight: bold;
-            color: #333;
+            color: #ffffff; /* Vit övningstext */
             font-size: 1.1em;
         }
         .workout-item small {
-            color: #777;
+            color: #b0b0b0; /* Ljusgrå detaljer */
             font-size: 0.85em;
             display: block;
             margin-top: 2px;
         }
         .filter-group select {
             margin-top: 5px;
+            background-color: #4a4a4a; /* Mörkare bakgrund i select */
+            color: #e0e0e0;
+            border: 1px solid #666;
         }
 
         /* Stil för att dölja/visa fält */
@@ -254,22 +263,26 @@
         const filterSelect = document.getElementById('filter-exercise');
         const exerciseSuggestionsDatalist = document.getElementById('exerciseSuggestions');
         const workoutsListDiv = document.getElementById('workouts-list');
+        const workoutForm = document.getElementById('workoutForm');
 
         // Funktion för att visa popup-notis
-        function showPopup(message, isError = false, isInfo = false) {
+        // isComparison är en ny flagga för den nya notistypen
+        function showPopup(message, isError = false, isInfo = false, isComparison = false) {
             const popup = document.getElementById('popupNotification');
             popup.textContent = message;
-            popup.classList.remove('error', 'info'); // Ta bort tidigare klasser
+            popup.classList.remove('error', 'info', 'comparison'); // Ta bort alla klasser
             if (isError) {
                 popup.classList.add('error');
             } else if (isInfo) {
-                popup.classList.add('info'); // Lägg till info-klass för gula notiser
+                popup.classList.add('info');
+            } else if (isComparison) {
+                popup.classList.add('comparison'); // Lägg till jämförelse-klass
             }
             popup.classList.add('show');
 
             setTimeout(() => {
                 popup.classList.remove('show');
-            }, 5000); // Notisen försvinner efter 5 sekunder
+            }, isComparison ? 8000 : 5000); // Längre visningstid för jämförelsenotisen
         }
 
         // Funktion för att rendera träningspassen i listan
@@ -285,7 +298,6 @@
                 const itemDiv = document.createElement('div');
                 itemDiv.classList.add('workout-item');
 
-                // Säkerställ att DateTime är ett giltigt datumobjekt
                 let dateTimeString = '';
                 try {
                     dateTimeString = new Date(workout.DateTime).toLocaleString('sv-SE', {
@@ -296,27 +308,23 @@
                     dateTimeString = workout.DateTime || 'Okänt Datum';
                 }
 
-                // Hantera tomma/undefined värden för presentation
-                // Observera att nycklarna (t.ex. 'Distans (m)') måste matcha dina exakta kolumnnamn i Google Sheet
+                // Anpassa för dina exakta kolumnnamn i Google Sheet
                 const weightDisplay = workout.Weight ? `${workout.Weight} kg` : '';
                 const repsDisplay = workout.Reps ? `${workout.Reps} reps` : '';
                 const setsDisplay = workout.Sets ? `${workout.Sets} set` : '';
                 const intensityDisplay = workout.Intence ? `RPE: ${workout.Intence}` : '';
-                const distanceDisplay = workout['Distans (m)'] ? `${workout['Distans (m)']} m` : ''; // ANVÄND KOLUMNNAMN FRÅN GOOGLE SHEET
-                const timeDisplay = workout['Tid (min)'] ? `${workout['Tid (min)']} min` : '';     // ANVÄND KOLUMNNAMN FRÅN GOOGLE SHEET
+                const distanceDisplay = workout['Distans (m)'] ? `${workout['Distans (m)']} m` : ''; // <<-- VIKTIGT: Kontrollera detta namn
+                const timeDisplay = workout['Tid (min)'] ? `${workout['Tid (min)']} min` : '';     // <<-- VIKTIGT: Kontrollera detta namn
 
-                // Bygg upp strängen för mätvärden baserat på vilka fält som finns
                 let metrics = [];
                 if (weightDisplay) metrics.push(weightDisplay);
                 if (repsDisplay) metrics.push(repsDisplay);
                 if (setsDisplay) metrics.push(setsDisplay);
                 if (intensityDisplay) metrics.push(intensityDisplay);
                 
-                // Lägg till konditionsvärden om de finns
                 if (distanceDisplay) metrics.push(distanceDisplay);
                 if (timeDisplay) metrics.push(timeDisplay);
 
-                // Kontrollera om det finns en kommentar för att lägga till den
                 const commentHtml = workout.Comment ? `<small>Kommentar: ${workout.Comment}</small>` : '';
 
                 itemDiv.innerHTML = `
@@ -358,7 +366,8 @@
             workoutsListDiv.innerHTML = '<p>Laddar pass...</p>';
 
             try {
-                const response = await fetch(API_GET_WORKOUTS_URL); // Anropar för de 20 senaste (standard)
+                // Anropar för de 20 senaste (standard)
+                const response = await fetch(API_GET_WORKOUTS_URL); 
                 if (!response.ok) {
                     const errorBody = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
                     throw new Error(`Kunde inte hämta pass: ${errorBody.message || response.status}`);
@@ -369,7 +378,7 @@
                     allWorkouts = result.workouts; // Spara de 20 senaste globalt
                     renderWorkouts(allWorkouts); // Rendera initialt de 20 senaste
 
-                    // Fyll i filterdropdown och datalist med unika övningar från alla hämtade pass
+                    // Fyll i filterdropdown och datalist med unika övningar från ALL data
                     const uniqueExercises = [...new Set(allWorkoutsForLookup.map(w => w.Exercise).filter(exercise => exercise && exercise.trim() !== ''))].sort((a, b) => a.localeCompare(b));
 
                     filterSelect.innerHTML = '<option value="">Alla övningar</option>';
@@ -401,10 +410,9 @@
         // Funktion för att växla formulärfält baserat på övning
         function toggleWorkoutFields() {
             const exerciseName = exerciseInput.value.trim().toLowerCase();
-            // Lägg till fler övningsnamn här om de ska visa konditionsfält
-            const cardioExercises = ['löpning', 'cykling', 'simning', 'rodd', 'kondition']; // Exempel
+            const cardioKeywords = ['löpning', 'cykling', 'simning', 'rodd', 'kondition', 'cardio'];
 
-            if (cardioExercises.includes(exerciseName) || exerciseName.includes('kondition')) {
+            if (cardioKeywords.some(keyword => exerciseName.includes(keyword))) {
                 strengthFields.classList.add('hidden-field');
                 cardioFields.classList.remove('hidden-field');
                 // Nollställ styrkefält om de döljs
@@ -421,10 +429,10 @@
             }
         }
 
-        // Funktion för att visa notis om tidigare resultat
+        // Funktion för att visa notis om tidigare resultat (vid inmatning)
         function showPreviousWorkoutNotification() {
             const currentExercise = exerciseInput.value.trim();
-            if (!currentExercise) return; // Gör inget om övningsfältet är tomt
+            if (!currentExercise) return;
 
             const lastWorkout = allWorkoutsForLookup.find(w =>
                 w.Exercise && w.Exercise.trim().toLowerCase() === currentExercise.toLowerCase()
@@ -432,35 +440,63 @@
 
             if (lastWorkout) {
                 let message = `Förra gången du gjorde "${currentExercise}" den ${new Date(lastWorkout.DateTime).toLocaleDateString('sv-SE')}: `;
-
-                // Förbered för att samla alla relevanta värden
                 let details = [];
 
-                // Styrketräning
                 if (lastWorkout.Weight) details.push(`Vikt: ${lastWorkout.Weight} kg`);
                 if (lastWorkout.Reps) details.push(`Reps: ${lastWorkout.Reps}`);
                 if (lastWorkout.Sets) details.push(`Sets: ${lastWorkout.Sets}`);
                 if (lastWorkout.Intence) details.push(`RPE: ${lastWorkout.Intence}`);
-
-                // Konditionsträning
                 if (lastWorkout['Distans (m)']) details.push(`Distans: ${lastWorkout['Distans (m)']} m`);
                 if (lastWorkout['Tid (min)']) details.push(`Tid: ${lastWorkout['Tid (min)']} min`);
-
-                // Lägg till kommentar om den finns
                 if (lastWorkout.Comment) details.push(`Kommentar: "${lastWorkout.Comment}"`);
 
                 message += details.join(', ');
-
                 showPopup(message, false, true); // Visa som info-notis (gul)
             }
-            // Om ingen tidigare finns, visas ingen notis
+        }
+
+        // Funktion för att visa jämförelse efter loggning
+        function showComparisonNotification(newWorkout) {
+            const currentExercise = newWorkout.Exercise.trim();
+            // Hitta det NÄST SENASTE passet för samma övning
+            const previousWorkouts = allWorkoutsForLookup.filter(w =>
+                w.Exercise && w.Exercise.trim().toLowerCase() === currentExercise.toLowerCase() &&
+                w.DateTime !== newWorkout.DateTime // Exkludera det nyligen loggade passet
+            ).sort((a, b) => new Date(b.DateTime) - new Date(a.DateTime)); // Sortera nyast först
+
+            const lastLoggedWorkout = previousWorkouts[0]; // Det är nu det förra passet
+            
+            if (lastLoggedWorkout) {
+                let comparisonMessage = `Jämförelse för "${currentExercise}":\n\n`;
+                comparisonMessage += `**Nu:** `;
+                let newDetails = [];
+                if (newWorkout.Weight) newDetails.push(`${newWorkout.Weight} kg`);
+                if (newWorkout.Reps) newDetails.push(`${newWorkout.Reps} reps`);
+                if (newWorkout.Sets) newDetails.push(`${newWorkout.Sets} set`);
+                if (newWorkout.Intence) newDetails.push(`RPE ${newWorkout.Intence}`);
+                if (newWorkout.Distance) newDetails.push(`${newWorkout.Distance} m`);
+                if (newWorkout.Time) newDetails.push(`${newWorkout.Time} min`);
+                comparisonMessage += newDetails.join(', ') + '\n';
+
+                comparisonMessage += `**Förra (${new Date(lastLoggedWorkout.DateTime).toLocaleDateString('sv-SE')}):** `;
+                let oldDetails = [];
+                if (lastLoggedWorkout.Weight) oldDetails.push(`${lastLoggedWorkout.Weight} kg`);
+                if (lastLoggedWorkout.Reps) oldDetails.push(`${lastLoggedWorkout.Reps} reps`);
+                if (lastLoggedWorkout.Sets) oldDetails.push(`${lastLoggedWorkout.Sets} set`);
+                if (lastLoggedWorkout.Intence) oldDetails.push(`RPE ${lastLoggedWorkout.Intence}`);
+                if (lastLoggedWorkout['Distans (m)']) oldDetails.push(`${lastLoggedWorkout['Distans (m)']} m`); // Använd korrekta nyckeln
+                if (lastLoggedWorkout['Tid (min)']) oldDetails.push(`${lastLoggedWorkout['Tid (min)']} min`); // Använd korrekta nyckeln
+                comparisonMessage += oldDetails.join(', ');
+
+                showPopup(comparisonMessage, false, false, true); // Visa som jämförelse-notis (cyan)
+            }
         }
 
 
         // Event listeners
         exerciseInput.addEventListener('input', () => {
             toggleWorkoutFields();
-            showPreviousWorkoutNotification(); // Visa notis när övning skrivs in
+            showPreviousWorkoutNotification();
         });
 
         filterSelect.addEventListener('change', function() {
@@ -468,7 +504,7 @@
             let filtered = [];
 
             if (selectedExercise === "") {
-                filtered = allWorkouts; // Visa de 20 senaste totalt
+                filtered = allWorkouts; // Visa de 20 senaste totalt (från loadAndRenderWorkouts)
             } else {
                 // Filtrera från den globala allWorkoutsForLookup arrayen (som innehåller alla pass)
                 // och ta de 20 senaste AV DEN ÖVNINGEN
@@ -478,7 +514,7 @@
             renderWorkouts(filtered);
         });
 
-        document.getElementById('workoutForm').addEventListener('submit', async function(event) {
+        workoutForm.addEventListener('submit', async function(event) {
             event.preventDefault();
 
             const DateTime = document.getElementById('date-time').value;
@@ -488,15 +524,14 @@
             const Sets = document.getElementById('sets').value;
             const Intence = document.getElementById('intence').value;
             const Comment = document.getElementById('comment').value;
-            const Distance = document.getElementById('distance').value; // Hämta nya fält
-            const Time = document.getElementById('time').value;         // Hämta nya fält
+            const Distance = document.getElementById('distance').value;
+            const Time = document.getElementById('time').value;
 
             if (!DateTime || !Exercise) {
                 showPopup('Datum & Tid och Övning är obligatoriska fält.', true);
                 return;
             }
 
-            // Skicka med tomma strängar för fält som inte är relevanta för att undvika 'undefined' i Sheet
             const dataToSend = { DateTime, Exercise, 
                                  Weight: Weight || '', 
                                  Reps: Reps || '', 
@@ -518,16 +553,20 @@
 
                 if (response.ok) {
                     showPopup('Pass loggat: ' + result.message);
-                    document.getElementById('workoutForm').reset();
+                    workoutForm.reset();
                     // Återställ datum/tid och fältens synlighet efter reset
                     const now = new Date();
                     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
                     document.getElementById('date-time').value = now.toISOString().slice(0, 16);
                     toggleWorkoutFields(); // Se till att fälten visas korrekt efter reset
-
-                    // Ladda om båda data-uppsättningarna för att få uppdaterad info
-                    await fetchAllWorkoutsForLookup(); // Uppdatera för notisen
-                    await loadAndRenderWorkouts();     // Uppdatera för listan och filtret
+                    
+                    // Ladda om all data FÖRST så den nya är med i jämförelsen
+                    await fetchAllWorkoutsForLookup(); 
+                    // Sedan visa jämförelsenotisen
+                    showComparisonNotification(dataToSend); // Skicka med det nylogggade passet
+                    
+                    // Till sist, ladda om de 20 senaste för listan och filtret
+                    await loadAndRenderWorkouts();     
                 } else {
                     showPopup('Fel vid loggning av pass: ' + result.message, true);
                 }
@@ -542,10 +581,10 @@
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('date-time').value = now.toISOString().slice(0, 16);
-
+            
             await fetchAllWorkoutsForLookup(); // Hämta all data först
             await loadAndRenderWorkouts();     // Ladda och rendera de 20 senaste (och fyll filter/datalist)
-            toggleWorkoutFields(); // Ställ in initial synlighet för fälten (om Övning redan har värde)
+            toggleWorkoutFields(); // Ställ in initial synlighet för fälten
         });
 
     </script>
